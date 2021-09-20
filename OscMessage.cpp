@@ -115,3 +115,29 @@ int OscMessage::getBuffer(char* outBuffer, int size) {
 
     return i; // return the total number of bytes written
 }
+
+
+
+namespace OscPacket {
+
+    std::vector<std::shared_ptr<OscMessage>> getOscMessages(char* inBuffer, size_t size) {
+        std::vector<std::shared_ptr<OscMessage>> output;
+        if (tosc_isBundle(inBuffer)) {
+            tosc_bundle bundle;
+            tosc_parseBundle(&bundle, inBuffer, size);
+            tosc_message message;
+            uint64_t timetag = tosc_getTimetag(&bundle);
+            while (tosc_getNextMessage(&bundle, &message)) {
+                output.push_back(std::make_shared<OscMessage>(message.buffer, message.len));
+            }
+        }
+        else {
+            tosc_message message;
+            if (0 == tosc_parseMessage(&message, inBuffer, size)) {
+                output.push_back(std::make_shared<OscMessage>(inBuffer, size));
+            }
+        }
+        return output;
+    }
+
+}

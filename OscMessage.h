@@ -131,7 +131,9 @@ public:
 		}
 	}
 
-	OscMessage(const char* address);
+	OscMessage(const char* address) {
+		strcpy(address_string, address);
+	}
 
 	void addBlob(char* buffer, size_t size) { arguments.push_back(OscBlob(buffer, size)); }
 	void addFloat(float data) { arguments.push_back(OscFloat(data)); }
@@ -141,6 +143,7 @@ public:
 	void addString(const char* data) { arguments.push_back(OscString(data)); }
 	void addMidi(char port, char statusByte, char data1, char data2) { arguments.push_back(OscMidi(port, statusByte, data1, data2)); }
 	void addTimetag(uint64_t data) { arguments.push_back(OscTimetag(data)); }
+	void addBool(bool data) { arguments.push_back(OscBool(data)); }
 
 	bool isBlob(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::BLOB)		return true; else return false; }
 	bool isFloat(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::FLOAT)	return true; else return false; }
@@ -150,6 +153,49 @@ public:
 	bool isString(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::STRING)	return true; else return false; }
 	bool isMidi(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::MIDI)		return true; else return false; }
 	bool isTimetag(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::TIMETAG)	return true; else return false; }
+	bool isBool(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::BOOL)		return true; else return false; }
+
+	int getBlob(int argumentIndex, char** output) {
+		OscBlob* oscBlob = (OscBlob*)&arguments[argumentIndex];
+		*output = oscBlob->data;
+		return oscBlob->size;
+	}
+	float getFloat(int argumentIndex) { 
+		OscFloat* oscFloat = (OscFloat*)&arguments[argumentIndex];
+		return oscFloat->data;
+	}
+	double getDouble(int argumentIndex) { 
+		OscDouble* oscDouble = (OscDouble*)&arguments[argumentIndex];
+		return oscDouble->data;
+	}
+	int32_t getInt32(int argumentIndex) {
+		OscInt32* oscInt32 = (OscInt32*)&arguments[argumentIndex];
+		return oscInt32->data;
+	}
+	int64_t getInt64(int argumentIndex) {
+		OscInt64* oscInt64 = (OscInt64*)&arguments[argumentIndex];
+		return oscInt64->data;
+	}
+	const char* getString(int argumentIndex) { 
+		OscString* oscString = (OscString*)&arguments[argumentIndex];
+		return oscString->data;
+	}
+	void getMidi(int argumentIndex, char* portInfo, char* statusByte, char* data1, char* data2) {
+		OscMidi* oscMidi = (OscMidi*)&arguments[argumentIndex];
+		*portInfo = oscMidi->portId;
+		*statusByte = oscMidi->statusByte;
+		*data1 = oscMidi->data1;
+		*data2 = oscMidi->data2;
+	}
+	uint64_t getTimetag(int argumentIndex) { 
+		OscTimetag* oscTimetag = (OscTimetag*)&arguments[argumentIndex];
+		return oscTimetag->data;
+	}
+	bool getBool(int argumentIndex) {
+		OscBool* oscBool = (OscBool*)&arguments[argumentIndex];
+		return oscBool->data;
+	}
+
 
 	bool matchesAddress(const char* address) { return strcmp(address, address_string) == 0; }
 	const char* getAddress() { return address_string; }
@@ -167,24 +213,6 @@ private:
 
 namespace OscPacket {
 
-	std::vector<std::shared_ptr<OscMessage>> getOscMessages(char* inBuffer, size_t size) {
-		std::vector<std::shared_ptr<OscMessage>> output;
-		if (tosc_isBundle(inBuffer)) {
-			tosc_bundle bundle;
-			tosc_parseBundle(&bundle, inBuffer, size);
-			tosc_message message;
-			uint64_t timetag = tosc_getTimetag(&bundle);
-			while (tosc_getNextMessage(&bundle, &message)) {
-				output.push_back(std::make_shared<OscMessage>(message.buffer, message.len));
-			}
-		}
-		else {
-			tosc_message message;
-			if (0 == tosc_parseMessage(&message, inBuffer, size)) {
-				output.push_back(std::make_shared<OscMessage>(inBuffer, size));
-			}
-		}
-		return output;
-	}
+	std::vector<std::shared_ptr<OscMessage>> getOscMessages(char* inBuffer, size_t size);
 
 }
