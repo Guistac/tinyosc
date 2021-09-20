@@ -33,3 +33,27 @@
 
 tinyosc
 tinyosc-osx
+
+
+#=== Directories =======
+
+.vs/
+bin/
+bin-int/
+logs/
+*.xcodeproj/
+*.xcworkspace/
+
+#=== Files ==============
+
+*.user
+*.sln
+*.ini
+*.json
+*.log
+*.xcodeproj
+*.xcworkspace
+*.vcxproj
+*.filters
+*.DS_Store
+
