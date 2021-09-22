@@ -4,7 +4,8 @@
 #include <vector>
 #include <memory>
 
-struct OscArgument {
+class OscArgument {
+public:
 	enum class Type {
 		BLOB,
 		FLOAT,
@@ -18,55 +19,65 @@ struct OscArgument {
 		UNKNOWN
 	};
 	Type type = Type::UNKNOWN;
-	virtual char getChar() { return 'u'; }
+	virtual char getChar() = 0;// { return 'u'; }
 };
 
-struct OscBlob : public OscArgument {
+class OscBlob : public OscArgument {
+public:
 	OscBlob(const char* d, int s) {
 		data = new char[s];
 		size = s;
 		memcpy(data, d, s);
 		type = Type::BLOB;
 	}
+	~OscBlob() {
+		delete[] data;
+	}
 	virtual char getChar() { return 'b'; }
 	char* data;
 	int size;
 };
 
-struct OscFloat : public OscArgument {
+class OscFloat : public OscArgument {
+public:
 	OscFloat(float d) : data(d) { type = Type::FLOAT; }
 	virtual char getChar() { return 'f'; }
 	float data;
 };
 
-struct OscDouble : public OscArgument {
+class OscDouble : public OscArgument {
+public:
 	OscDouble(double d) : data(d) { type = Type::DOUBLE; }
 	virtual char getChar() { return 'd'; }
 	double data;
 };
 
-struct OscInt32 : public OscArgument {
+class OscInt32 : public OscArgument {
+public:
 	OscInt32(int32_t d) : data(d) { type = Type::INT32; }
 	virtual char getChar() { return 'i'; }
 	int32_t data;
 };
 
-struct OscInt64 : public OscArgument {
+class OscInt64 : public OscArgument {
+public:
 	OscInt64(int64_t d) : data(d) { type = Type::INT64; }
 	virtual char getChar() { return 'h'; }
 	int64_t data;
 };
 
-struct OscString : public OscArgument {
+class OscString : public OscArgument {
+public:
 	OscString(const char* d) {
 		strcpy(data, d);
 		type = Type::STRING;
 	}
 	virtual char getChar() { return 's'; }
-	char* data;
+	char data[128];
 };
 
-struct OscMidi : public OscArgument {
+class OscMidi : public OscArgument {
+public:
 	OscMidi(unsigned char* d) {
 		portId = d[0];
 		statusByte = d[1];
@@ -82,13 +93,15 @@ struct OscMidi : public OscArgument {
 	char data2;
 };
 
-struct OscTimetag : public OscArgument {
+class OscTimetag : public OscArgument {
+public:
 	OscTimetag(uint64_t d) : data(d) { type = Type::TIMETAG; }
 	virtual char getChar() { return 't'; }
 	uint64_t data;
 };
 
-struct OscBool : public OscArgument {
+class OscBool : public OscArgument {
+public:
 	OscBool(bool d) : data(d) { type = Type::BOOL; }
 	virtual char getChar() { return data ? 'T' : 'F'; }
 	bool data;
@@ -99,102 +112,43 @@ struct OscBool : public OscArgument {
 class OscMessage {
 public:
 
-	OscMessage(char* inputBuffer, size_t size) {
-		tosc_message message;
-		if (0 == tosc_parseMessage(&message, inputBuffer, size)) {
-			strcpy(address_string, tosc_getAddress(&message));
-			char* format = tosc_getFormat(&message);
-			int argumentCount = strlen(format);
-			for (int i = 0; i < argumentCount; i++) {
-				char argument = format[i];
-				switch (argument) {
-				case 'b':
-					const char* buffer;
-					int size;
-					tosc_getNextBlob(&message, &buffer, &size);
-					arguments.push_back(OscBlob(buffer, size));
-					break;
-				case 'f': arguments.push_back(OscFloat(tosc_getNextFloat(&message))); break;
-				case 'd': arguments.push_back(OscDouble(tosc_getNextDouble(&message))); break;
-				case 'i': arguments.push_back(OscInt32(tosc_getNextInt32(&message))); break;
-				case 'h': arguments.push_back(OscInt64(tosc_getNextInt64(&message))); break;
-				case 's': arguments.push_back(OscString(tosc_getNextString(&message))); break;
-				case 'm': arguments.push_back(OscMidi(tosc_getNextMidi(&message))); break;
-				case 't': arguments.push_back(OscTimetag(tosc_getNextTimetag(&message))); break;
-				case 'T': arguments.push_back(OscBool(true)); break;
-				case 'F': arguments.push_back(OscBool(false)); break;
-				case 'I':
-				case 'N':
-				default: arguments.push_back(OscArgument()); break;
-				}
-			}
-		}
-	}
-
+	OscMessage(char* inputBuffer, size_t size);
 	OscMessage(const char* address) {
 		strcpy(address_string, address);
 	}
+	~OscMessage() {
+		for (auto argument : arguments) delete argument;
+	}
 
-	void addBlob(char* buffer, size_t size) { arguments.push_back(OscBlob(buffer, size)); }
-	void addFloat(float data) { arguments.push_back(OscFloat(data)); }
-	void addDouble(double data) { arguments.push_back(OscDouble(data)); }
-	void addInt32(int32_t data) { arguments.push_back(OscInt32(data)); }
-	void addInt64(int64_t data) { arguments.push_back(OscInt64(data)); }
-	void addString(const char* data) { arguments.push_back(OscString(data)); }
-	void addMidi(char port, char statusByte, char data1, char data2) { arguments.push_back(OscMidi(port, statusByte, data1, data2)); }
-	void addTimetag(uint64_t data) { arguments.push_back(OscTimetag(data)); }
-	void addBool(bool data) { arguments.push_back(OscBool(data)); }
+	void addBlob(char* buffer, size_t size) { arguments.push_back(new OscBlob(buffer, size)); }
+	void addFloat(float data) { arguments.push_back(new OscFloat(data)); }
+	void addDouble(double data) { arguments.push_back(new OscDouble(data)); }
+	void addInt32(int32_t data) { arguments.push_back(new OscInt32(data)); }
+	void addInt64(int64_t data) { arguments.push_back(new OscInt64(data)); }
+	void addString(const char* data) { arguments.push_back(new OscString(data)); }
+	void addMidi(char port, char statusByte, char data1, char data2) { arguments.push_back(new OscMidi(port, statusByte, data1, data2)); }
+	void addTimetag(uint64_t data) { arguments.push_back(new OscTimetag(data)); }
+	void addBool(bool data) { arguments.push_back(new OscBool(data)); }
 
-	bool isBlob(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::BLOB)		return true; else return false; }
-	bool isFloat(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::FLOAT)	return true; else return false; }
-	bool isDouble(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::DOUBLE)	return true; else return false; }
-	bool isInt32(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::INT32)	return true; else return false; }
-	bool isInt64(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::INT64)	return true; else return false; }
-	bool isString(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::STRING)	return true; else return false; }
-	bool isMidi(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::MIDI)		return true; else return false; }
-	bool isTimetag(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::TIMETAG)	return true; else return false; }
-	bool isBool(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex].type == OscArgument::Type::BOOL)		return true; else return false; }
+	bool isBlob(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex]->type == OscArgument::Type::BLOB)		return true; else return false; }
+	bool isFloat(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex]->type == OscArgument::Type::FLOAT)	return true; else return false; }
+	bool isDouble(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex]->type == OscArgument::Type::DOUBLE)	return true; else return false; }
+	bool isInt32(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex]->type == OscArgument::Type::INT32)	return true; else return false; }
+	bool isInt64(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex]->type == OscArgument::Type::INT64)	return true; else return false; }
+	bool isString(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex]->type == OscArgument::Type::STRING)	return true; else return false; }
+	bool isMidi(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex]->type == OscArgument::Type::MIDI)		return true; else return false; }
+	bool isTimetag(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex]->type == OscArgument::Type::TIMETAG)	return true; else return false; }
+	bool isBool(int argumentIndex) { if (argumentIndex < arguments.size() && arguments[argumentIndex]->type == OscArgument::Type::BOOL)		return true; else return false; }
 
-	int getBlob(int argumentIndex, char** output) {
-		OscBlob* oscBlob = (OscBlob*)&arguments[argumentIndex];
-		*output = oscBlob->data;
-		return oscBlob->size;
-	}
-	float getFloat(int argumentIndex) { 
-		OscFloat* oscFloat = (OscFloat*)&arguments[argumentIndex];
-		return oscFloat->data;
-	}
-	double getDouble(int argumentIndex) { 
-		OscDouble* oscDouble = (OscDouble*)&arguments[argumentIndex];
-		return oscDouble->data;
-	}
-	int32_t getInt32(int argumentIndex) {
-		OscInt32* oscInt32 = (OscInt32*)&arguments[argumentIndex];
-		return oscInt32->data;
-	}
-	int64_t getInt64(int argumentIndex) {
-		OscInt64* oscInt64 = (OscInt64*)&arguments[argumentIndex];
-		return oscInt64->data;
-	}
-	const char* getString(int argumentIndex) { 
-		OscString* oscString = (OscString*)&arguments[argumentIndex];
-		return oscString->data;
-	}
-	void getMidi(int argumentIndex, char* portInfo, char* statusByte, char* data1, char* data2) {
-		OscMidi* oscMidi = (OscMidi*)&arguments[argumentIndex];
-		*portInfo = oscMidi->portId;
-		*statusByte = oscMidi->statusByte;
-		*data1 = oscMidi->data1;
-		*data2 = oscMidi->data2;
-	}
-	uint64_t getTimetag(int argumentIndex) { 
-		OscTimetag* oscTimetag = (OscTimetag*)&arguments[argumentIndex];
-		return oscTimetag->data;
-	}
-	bool getBool(int argumentIndex) {
-		OscBool* oscBool = (OscBool*)&arguments[argumentIndex];
-		return oscBool->data;
-	}
+	int getBlob(int argumentIndex, char** output);
+	float getFloat(int argumentIndex);
+	double getDouble(int argumentIndex);
+	int32_t getInt32(int argumentIndex);
+	int64_t getInt64(int argumentIndex);
+	const char* getString(int argumentIndex);
+	void getMidi(int argumentIndex, char* portInfo, char* statusByte, char* data1, char* data2);
+	uint64_t getTimetag(int argumentIndex);
+	bool getBool(int argumentIndex);
 
 
 	bool matchesAddress(const char* address) { return strcmp(address, address_string) == 0; }
@@ -205,9 +159,9 @@ public:
 
 private:
 
-	uint64_t timetag;
+	uint64_t timetag = 0;
 	char address_string[128];
-	std::vector<OscArgument> arguments;
+	std::vector<OscArgument*> arguments;
 };
 
 
