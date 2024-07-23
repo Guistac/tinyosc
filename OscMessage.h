@@ -3,6 +3,7 @@
 #include "tinyosc.h"
 #include <vector>
 #include <memory>
+#include <string.h>
 
 class OscArgument {
 public:
