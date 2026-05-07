@@ -56,43 +56,43 @@ OscMessage::OscMessage(char* inputBuffer, size_t size) {
 
 
 int OscMessage::getBlob(int argumentIndex, char** output) {
-    OscBlob* oscBlob = (OscBlob*)&arguments[argumentIndex];
+    OscBlob* oscBlob = (OscBlob*)arguments[argumentIndex];
     *output = oscBlob->data;
     return oscBlob->size;
 }
 float OscMessage::getFloat(int argumentIndex) {
-    OscFloat* oscFloat = (OscFloat*)&arguments[argumentIndex];
+    OscFloat* oscFloat = (OscFloat*)arguments[argumentIndex];
     return oscFloat->data;
 }
 double OscMessage::getDouble(int argumentIndex) {
-    OscDouble* oscDouble = (OscDouble*)&arguments[argumentIndex];
+    OscDouble* oscDouble = (OscDouble*)arguments[argumentIndex];
     return oscDouble->data;
 }
 int32_t OscMessage::getInt32(int argumentIndex) {
-    OscInt32* oscInt32 = (OscInt32*)&arguments[argumentIndex];
+    OscInt32* oscInt32 = (OscInt32*)arguments[argumentIndex];
     return oscInt32->data;
 }
 int64_t OscMessage::getInt64(int argumentIndex) {
-    OscInt64* oscInt64 = (OscInt64*)&arguments[argumentIndex];
+    OscInt64* oscInt64 = (OscInt64*)arguments[argumentIndex];
     return oscInt64->data;
 }
 const char* OscMessage::getString(int argumentIndex) {
-    OscString* oscString = (OscString*)&arguments[argumentIndex];
+    OscString* oscString = (OscString*)arguments[argumentIndex];
     return oscString->data;
 }
 void OscMessage::getMidi(int argumentIndex, char* portInfo, char* statusByte, char* data1, char* data2) {
-    OscMidi* oscMidi = (OscMidi*)&arguments[argumentIndex];
+    OscMidi* oscMidi = (OscMidi*)arguments[argumentIndex];
     *portInfo = oscMidi->portId;
     *statusByte = oscMidi->statusByte;
     *data1 = oscMidi->data1;
     *data2 = oscMidi->data2;
 }
 uint64_t OscMessage::getTimetag(int argumentIndex) {
-    OscTimetag* oscTimetag = (OscTimetag*)&arguments[argumentIndex];
+    OscTimetag* oscTimetag = (OscTimetag*)arguments[argumentIndex];
     return oscTimetag->data;
 }
 bool OscMessage::getBool(int argumentIndex) {
-    OscBool* oscBool = (OscBool*)&arguments[argumentIndex];
+    OscBool* oscBool = (OscBool*)arguments[argumentIndex];
     return oscBool->data;
 }
 
@@ -108,7 +108,7 @@ int OscMessage::getBuffer(char* outBuffer, int size) {
 
     memset(buffer, 0, len); // clear the buffer
     uint32_t i = (uint32_t)strlen(address);
-    if (address == NULL || i >= len) return -1;
+    if (i >= len) return -1;
     tosc_strncpy(outBuffer, address, len);
     while (i % 4 != 3) {
         i++;
@@ -118,7 +118,7 @@ int OscMessage::getBuffer(char* outBuffer, int size) {
     buffer[i] = ',';
     i++;
     int s_len = (int)strlen(format);
-    if (format == NULL || (i + s_len) >= len) return -2;
+    if ((i + s_len) >= len) return -2;
     tosc_strncpy(buffer + i, format, len - i - s_len);
     i += s_len;
     while (i % 4 != 3) {
@@ -171,7 +171,6 @@ int OscMessage::getBuffer(char* outBuffer, int size) {
         case 'm': {
             OscMidi* oscMidi = (OscMidi*)arguments[j];
             if (i + 4 > len) return -3;
-            const unsigned char* const k = (unsigned char*)oscMidi->portId;
             buffer[i] = oscMidi->portId;
             buffer[i+1] = oscMidi->statusByte;
             buffer[i+2] = oscMidi->data1;

@@ -20,7 +20,8 @@ public:
 		UNKNOWN
 	};
 	Type type = Type::UNKNOWN;
-	virtual char getChar() = 0;// { return 'u'; }
+	virtual ~OscArgument() = default;
+	virtual char getChar() = 0;
 };
 
 class OscBlob : public OscArgument {
