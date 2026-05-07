@@ -122,7 +122,7 @@ public:
 		for (auto argument : arguments) delete argument;
 	}
 
-	void addBlob(char* buffer, size_t size) { arguments.push_back(new OscBlob(buffer, size)); }
+	void addBlob(char* buffer, size_t size) { arguments.push_back(new OscBlob(buffer, (int)size)); }
 	void addFloat(float data) { arguments.push_back(new OscFloat(data)); }
 	void addDouble(double data) { arguments.push_back(new OscDouble(data)); }
 	void addInt32(int32_t data) { arguments.push_back(new OscInt32(data)); }
